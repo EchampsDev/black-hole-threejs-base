@@ -13,7 +13,9 @@ const DISK_TILT_ANGLE = Math.PI / 3.0;
 const ui = {
     panel: document.getElementById('control-panel'), toggle: document.getElementById('panel-toggle'),
     quality: document.getElementById('quality'), note: document.getElementById('quality-note'),
-    camera: document.getElementById('cinematic-camera'), motion: document.getElementById('motion')
+    camera: document.getElementById('cinematic-camera'), motion: document.getElementById('motion'),
+    tour: document.getElementById('tour-overlay'), tourPhase: document.getElementById('tour-phase'),
+    tourCount: document.getElementById('tour-count'), tourDescription: document.getElementById('tour-description')
 };
 const saved = (() => { try { return JSON.parse(localStorage.getItem('black-hole-cinematic-v2') || '{}'); } catch { return {}; } })();
 let lookName = Object.hasOwn(LOOKS, saved.look) ? saved.look : 'observatory';
@@ -400,6 +402,20 @@ const blackHoleScreenPosVec3 = new THREE.Vector3();
 let elapsedTime = 0;
 let autoResumeAt = 0;
 let resizeTimeout;
+const TOUR_COUNTDOWN = 5;
+const TOUR_DURATION = 29;
+let tourState = 'idle';
+let tourStartedAt = 0;
+let tourRoute = [];
+let lastCountdown = 0;
+let lastScene = -1;
+const tourShots = [
+    { time: 4, position: [-11, 5, 11], title: 'PLANO ABIERTO' },
+    { time: 10, position: [-7, 3.3, 6], title: 'APROXIMACIÓN' },
+    { time: 17, position: [-2.2, 1.5, 3.2], title: 'HORIZONTE' },
+    { time: 23, position: [2.4, 1.1, 2.2], title: 'PASO CERCANO' },
+    { time: TOUR_DURATION, position: [6, 3, 7], title: 'REGRESO' }
+];
 
 function persist() {
     try { localStorage.setItem('black-hole-cinematic-v2', JSON.stringify({ look: lookName, quality: qualityMode, motion: motionEnabled, camera: cameraEnabled, ...overrides })); } catch { /* Storage is optional. */ }
@@ -456,7 +472,66 @@ function applyQuality() {
 function applyCamera() {
     ui.camera.checked = cameraEnabled;
     controls.autoRotateSpeed = 0.16;
-    controls.autoRotate = cameraEnabled && performance.now() > autoResumeAt;
+    controls.autoRotate = tourState === 'idle' && cameraEnabled && performance.now() > autoResumeAt;
+}
+
+function stopTour() {
+    if (tourState === 'idle') return;
+    tourState = 'idle';
+    ui.tour.hidden = true;
+    ui.tour.classList.remove('running');
+    controls.enabled = true;
+    controls.target.set(0, 0, 0);
+    controls.update();
+    autoResumeAt = performance.now() + 12000;
+    applyCamera();
+}
+
+function startTour() {
+    if (tourState !== 'idle') stopTour();
+    tourRoute = [{ time: 0, position: camera.position.clone(), title: 'DESPEGUE' },
+        ...tourShots.map(shot => ({ ...shot, position: new THREE.Vector3(...shot.position) }))];
+    tourState = 'countdown';
+    tourStartedAt = performance.now();
+    lastCountdown = 5;
+    lastScene = -1;
+    controls.enabled = false;
+    controls.autoRotate = false;
+    ui.tour.hidden = false;
+    ui.tour.classList.remove('running');
+    ui.tourPhase.textContent = 'CÁMARA INTERSTELLAR';
+    ui.tourCount.textContent = '5';
+    ui.tourDescription.textContent = 'El viaje comienza en breve';
+    setPanel(false);
+}
+
+function updateTour(now) {
+    if (tourState === 'idle') return;
+    const elapsed = (now - tourStartedAt) / 1000;
+    if (tourState === 'countdown') {
+        const remaining = Math.ceil(TOUR_COUNTDOWN - elapsed);
+        if (remaining > 0) {
+            if (remaining !== lastCountdown) ui.tourCount.textContent = String(remaining);
+            lastCountdown = remaining;
+            return;
+        }
+        tourState = 'running';
+        ui.tour.classList.add('running');
+    }
+    const progress = Math.min(TOUR_DURATION, elapsed - TOUR_COUNTDOWN);
+    if (progress >= TOUR_DURATION) { stopTour(); return; }
+    const sceneIndex = tourRoute.findIndex((shot, index) => index > 0 && progress <= shot.time);
+    const from = tourRoute[sceneIndex - 1];
+    const to = tourRoute[sceneIndex];
+    const fraction = THREE.MathUtils.clamp((progress - from.time) / (to.time - from.time), 0, 1);
+    const eased = fraction * fraction * (3 - 2 * fraction);
+    camera.position.lerpVectors(from.position, to.position, eased);
+    camera.lookAt(0, 0, 0);
+    if (sceneIndex !== lastScene) {
+        ui.tourPhase.textContent = 'CÁMARA INTERSTELLAR';
+        ui.tourDescription.textContent = to.title;
+        lastScene = sceneIndex;
+    }
 }
 
 function setPanel(open) {
@@ -466,7 +541,10 @@ function setPanel(open) {
 
 ui.toggle.addEventListener('click', () => setPanel(!ui.panel.classList.contains('open')));
 document.getElementById('panel-close').addEventListener('click', () => setPanel(false));
-document.addEventListener('keydown', event => { if (event.key === 'Escape') setPanel(false); });
+document.addEventListener('keydown', event => { if (event.key === 'Escape') { setPanel(false); stopTour(); } });
+document.getElementById('tour-start').addEventListener('click', startTour);
+document.getElementById('tour-cancel').addEventListener('click', stopTour);
+renderer.domElement.addEventListener('pointerdown', stopTour);
 document.querySelectorAll('[data-look]').forEach(button => button.addEventListener('click', () => {
     lookName = button.dataset.look; applyLook(); persist();
 }));
@@ -503,8 +581,12 @@ function animate() {
     diskMaterial.uniforms.uTime.value = elapsedTime;
     starMaterial.uniforms.uTime.value = elapsedTime;
     eventHorizonMat.uniforms.uTime.value = elapsedTime;
-    if (cameraEnabled && !controls.autoRotate && performance.now() > autoResumeAt) controls.autoRotate = true;
-    controls.update();
+    const now = performance.now();
+    updateTour(now);
+    if (tourState === 'idle') {
+        if (cameraEnabled && !controls.autoRotate && now > autoResumeAt) controls.autoRotate = true;
+        controls.update();
+    }
     photonRing.quaternion.copy(camera.quaternion);
     blackHoleScreenPosVec3.copy(blackHoleMesh.position).project(camera);
     lensingPass.uniforms.blackHoleScreenPos.value.set(

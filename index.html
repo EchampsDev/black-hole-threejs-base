@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -40,9 +40,17 @@
         <label for="exposure"><span>Exposición</span><output id="exposure-value">50%</output></label><input id="exposure" type="range" min="0" max="100" value="50">
       </div>
       <div class="control-group"><label class="toggle-row" for="cinematic-camera"><span>Cámara cinematográfica<small>Órbita lenta; se pausa al interactuar.</small></span><input id="cinematic-camera" type="checkbox"></label><label class="toggle-row" for="motion"><span>Animación<small>Pausa el plasma y las estrellas.</small></span><input id="motion" type="checkbox" checked></label></div>
+      <div class="control-group tour-group">
+        <div class="group-label"><span>Cámara Interstellar</span><small>Un recorrido de 29 segundos: plano abierto, órbita y acercamiento al horizonte.</small></div>
+        <button id="tour-start" class="tour-start" type="button">▶ Iniciar recorrido · cuenta de 5 s</button>
+      </div>
       <button id="reset" class="reset-button" type="button">Restablecer ajustes</button>
       <p class="credit">Basado en el proyecto de <a href="https://codewithbhurtel.com/projects/78" target="_blank" rel="noopener noreferrer">CodeWithBhurtel</a>. Visualización artística, no simulación científica.</p>
     </aside>
+    <div id="tour-overlay" class="tour-overlay" hidden>
+      <div class="tour-caption" role="status" aria-live="polite"><small id="tour-phase">CÁMARA INTERSTELLAR</small><strong id="tour-count">5</strong><span id="tour-description">El viaje comienza en breve</span></div>
+      <button id="tour-cancel" class="tour-cancel" type="button">Detener recorrido</button>
+    </div>
     <div class="instruction">Arrastra para orbitar · Pellizca para acercar</div>
     <div id="fallback" class="fallback" hidden><strong>Esta vista necesita WebGL.</strong><span>Prueba en un navegador con aceleración gráfica activada.</span></div>
     <script>window.addEventListener('error', event => { if (/WebGL|context/i.test(String(event.message))) document.getElementById('fallback').hidden = false; });</script>
