@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#030407">
     <title>Black Hole · Cinematic Lab</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=scene-clean-1">
+    <link rel="stylesheet" href="style.css?v=original-lilac-1">
     <script type="importmap">
     {
       "imports": {
@@ -31,6 +31,7 @@
           <button class="look-button" type="button" data-look="event" aria-pressed="false"><span class="swatch ember"></span>Horizonte</button>
           <button class="look-button" type="button" data-look="deep" aria-pressed="false"><span class="swatch blue"></span>Espacio profundo</button>
           <button class="look-button" type="button" data-look="noir" aria-pressed="false"><span class="swatch noir"></span>Noir</button>
+          <button class="look-button" type="button" data-look="original" aria-pressed="false"><span class="swatch lilac"></span>Original lila</button>
         </div>
       </div>
       <div class="control-group"><label class="row" for="quality"><span>Calidad</span><select id="quality"><option value="auto">Auto</option><option value="low">Baja</option><option value="medium">Media</option><option value="high">Alta</option><option value="ultra">Ultra</option></select></label><small id="quality-note" class="hint"></small></div>
@@ -55,6 +56,6 @@
     <div id="fallback" class="fallback" hidden><strong>Esta vista necesita WebGL.</strong><span>Prueba en un navegador con aceleración gráfica activada.</span></div>
     <script>window.addEventListener('error', event => { if (/WebGL|context/i.test(String(event.message))) document.getElementById('fallback').hidden = false; });</script>
 
-    <script type="module" src="script.js?v=scene-clean-1"></script>
+    <script type="module" src="script.js?v=original-lilac-1"></script>
 </body>
 </html>

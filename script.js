@@ -195,7 +195,8 @@ const eventHorizonGeom = new THREE.SphereGeometry(BLACK_HOLE_RADIUS * 1.05, 128,
 const eventHorizonMat = new THREE.ShaderMaterial({
     uniforms: {
         uTime: { value: 0 },
-        uCameraPosition: { value: camera.position }
+        uCameraPosition: { value: camera.position },
+        uGlowColor: { value: new THREE.Color('#f0a45e') }
     },
     vertexShader: `
         varying vec3 vNormal;
@@ -209,6 +210,7 @@ const eventHorizonMat = new THREE.ShaderMaterial({
     fragmentShader: `
         uniform float uTime;
         uniform vec3 uCameraPosition;
+        uniform vec3 uGlowColor;
         varying vec3 vNormal;
         varying vec3 vPosition;
         
@@ -217,10 +219,9 @@ const eventHorizonMat = new THREE.ShaderMaterial({
             float fresnel = 1.0 - abs(dot(vNormal, viewDirection));
             fresnel = pow(fresnel, 2.5);
             
-            vec3 glowColor = vec3(0.8, 0.48, 0.22);
             float pulse = sin(uTime * 1.2) * 0.05 + 0.95;
             
-            gl_FragColor = vec4(glowColor * fresnel * pulse, fresnel * 0.16);
+            gl_FragColor = vec4(uGlowColor * fresnel * pulse, fresnel * 0.16);
         }
     `,
     transparent: true,
@@ -426,6 +427,7 @@ function applyLook() {
         diskMaterial.uniforms[key].value.set(look.colors[index]);
     }
     photonRing.material.uniforms.uRingColor.value.set(look.colors[1]);
+    eventHorizonMat.uniforms.uGlowColor.value.set(look.colors[1]);
     diskMaterial.uniforms.uDensity.value = look.density;
     starMaterial.uniforms.uOpacity.value = look.stars;
     bloomPass.strength = look.bloom * (overrides.bloom / 50);

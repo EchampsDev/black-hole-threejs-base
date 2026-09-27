@@ -23,8 +23,10 @@ h1 { margin: 5px 0 0; font-size: 21px; font-weight: 500; letter-spacing: -.04em;
 .look-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 15px; }
 .look-button { display: flex; align-items: center; gap: 9px; min-height: 43px; padding: 8px 10px; border: 1px solid #ffffff1d; border-radius: 11px; background: #ffffff08; color: #ddd7ce; text-align: left; font-size: 11px; }
 .look-button.active { border-color: #d6a36d; background: #d6a36d21; color: #fff6ea; }
+.look-button[data-look="original"] { grid-column: 1 / -1; }
+.look-button[data-look="original"].active { border-color: #dd83ee; background: #b94bce2b; }
 .swatch { width: 14px; height: 14px; flex: 0 0 auto; border-radius: 50%; box-shadow: 0 0 12px currentColor; }
-.warm { color: #f4be76; background: currentColor; }.ember { color: #ff763a; background: currentColor; }.blue { color: #84b8e8; background: currentColor; }.noir { color: #c9b9a7; background: currentColor; }
+.warm { color: #f4be76; background: currentColor; }.ember { color: #ff763a; background: currentColor; }.blue { color: #84b8e8; background: currentColor; }.noir { color: #c9b9a7; background: currentColor; }.lilac { color: #eb80ee; background: currentColor; }
 .row { gap: 10px; font-size: 13px; }
 select { min-width: 103px; padding: 6px 24px 6px 9px; border: 1px solid #ffffff36; border-radius: 8px; background: #171a20; color: #f4ede3; font-size: 12px; }
 .sliders { display: grid; gap: 9px; }

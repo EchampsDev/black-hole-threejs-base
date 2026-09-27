@@ -19,6 +19,11 @@ export const LOOKS = Object.freeze({
     description: 'Minimalista, oscuro y de bajo resplandor.',
     colors: ['#e5d8c0', '#ad8268', '#664b42', '#322a2a', '#0d0c10'],
     bloom: 0.3, lensing: 0.08, exposure: 0.83, aberration: 0.0005, density: 0.9, stars: 0.4
+  },
+  original: {
+    description: 'Lila y magenta, con el fulgor del diseño original.',
+    colors: ['#fffaff', '#ffb2f4', '#ff658e', '#d946ce', '#662fb2'],
+    bloom: 0.86, lensing: 0.11, exposure: 1.14, aberration: 0.0018, density: 1.24, stars: 0.68
   }
 });
 
