@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Three.js Black Hole Visualization</title>
+    <meta name="theme-color" content="#030407">
+    <title>Black Hole · Cinematic Lab</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <script type="importmap">
@@ -16,10 +17,35 @@
     </script>
 </head>
 <body>
-    <div id="info">
-        Black Hole<br>
-        <span style="font-size: 14px; opacity: 0.8;">Click and drag to rotate view</span>
-    </div>
+    <header class="brand" aria-label="Black Hole Cinematic Lab">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <div><strong>BLACK HOLE</strong><small>CINEMATIC LAB · EXPERIMENTAL</small></div>
+    </header>
+
+    <button id="panel-toggle" class="panel-toggle" type="button" aria-controls="control-panel" aria-expanded="false">Ajustes <span aria-hidden="true">☷</span></button>
+    <aside id="control-panel" class="panel" aria-label="Ajustes cinematográficos">
+      <div class="panel-heading"><div><small>EXPLORA EL HORIZONTE</small><h1>Director de escena</h1></div><button id="panel-close" class="icon-button" type="button" aria-label="Cerrar ajustes">×</button></div>
+      <div class="control-group"><div class="group-label"><span>Estética</span><small id="look-description">Astrofotografía cálida y contenida.</small></div>
+        <div class="look-grid" role="group" aria-label="Presets cinematográficos">
+          <button class="look-button active" type="button" data-look="observatory" aria-pressed="true"><span class="swatch warm"></span>Observatorio</button>
+          <button class="look-button" type="button" data-look="event" aria-pressed="false"><span class="swatch ember"></span>Horizonte</button>
+          <button class="look-button" type="button" data-look="deep" aria-pressed="false"><span class="swatch blue"></span>Espacio profundo</button>
+          <button class="look-button" type="button" data-look="noir" aria-pressed="false"><span class="swatch noir"></span>Noir</button>
+        </div>
+      </div>
+      <div class="control-group"><label class="row" for="quality"><span>Calidad</span><select id="quality"><option value="auto">Auto</option><option value="low">Baja</option><option value="medium">Media</option><option value="high">Alta</option><option value="ultra">Ultra</option></select></label><small id="quality-note" class="hint"></small></div>
+      <div class="control-group sliders">
+        <label for="lensing"><span>Curvatura de luz</span><output id="lensing-value">50%</output></label><input id="lensing" type="range" min="0" max="100" value="50">
+        <label for="bloom"><span>Resplandor</span><output id="bloom-value">50%</output></label><input id="bloom" type="range" min="0" max="100" value="50">
+        <label for="exposure"><span>Exposición</span><output id="exposure-value">50%</output></label><input id="exposure" type="range" min="0" max="100" value="50">
+      </div>
+      <div class="control-group"><label class="toggle-row" for="cinematic-camera"><span>Cámara cinematográfica<small>Órbita lenta; se pausa al interactuar.</small></span><input id="cinematic-camera" type="checkbox"></label><label class="toggle-row" for="motion"><span>Animación<small>Pausa el plasma y las estrellas.</small></span><input id="motion" type="checkbox" checked></label></div>
+      <button id="reset" class="reset-button" type="button">Restablecer ajustes</button>
+      <p class="credit">Basado en el proyecto de <a href="https://codewithbhurtel.com/projects/78" target="_blank" rel="noopener noreferrer">CodeWithBhurtel</a>. Visualización artística, no simulación científica.</p>
+    </aside>
+    <div class="instruction">Arrastra para orbitar · Pellizca para acercar</div>
+    <div id="fallback" class="fallback" hidden><strong>Esta vista necesita WebGL.</strong><span>Prueba en un navegador con aceleración gráfica activada.</span></div>
+    <script>window.addEventListener('error', event => { if (/WebGL|context/i.test(String(event.message))) document.getElementById('fallback').hidden = false; });</script>
 
     <script type="module" src="script.js"></script>
 </body>

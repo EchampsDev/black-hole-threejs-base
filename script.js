@@ -4,11 +4,24 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { LOOKS, QUALITY, autoQuality } from './presets.js';
 
 const BLACK_HOLE_RADIUS = 1.3;
 const DISK_INNER_RADIUS = BLACK_HOLE_RADIUS + 0.2;
 const DISK_OUTER_RADIUS = 8.0;
 const DISK_TILT_ANGLE = Math.PI / 3.0;
+const ui = {
+    panel: document.getElementById('control-panel'), toggle: document.getElementById('panel-toggle'),
+    quality: document.getElementById('quality'), note: document.getElementById('quality-note'),
+    camera: document.getElementById('cinematic-camera'), motion: document.getElementById('motion')
+};
+const saved = (() => { try { return JSON.parse(localStorage.getItem('black-hole-cinematic-v2') || '{}'); } catch { return {}; } })();
+let lookName = Object.hasOwn(LOOKS, saved.look) ? saved.look : 'observatory';
+let qualityMode = Object.hasOwn(QUALITY, saved.quality) ? saved.quality : 'auto';
+let activeQuality = qualityMode === 'auto' ? autoQuality() : qualityMode;
+let motionEnabled = typeof saved.motion === 'boolean' ? saved.motion : !matchMedia('(prefers-reduced-motion: reduce)').matches;
+let cameraEnabled = saved.camera === true && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+const overrides = Object.fromEntries(['lensing', 'bloom', 'exposure'].map(key => [key, Number.isFinite(saved[key]) ? THREE.MathUtils.clamp(saved[key], 0, 100) : 50]));
 
 const scene = new THREE.Scene();
 scene.fog = new THREE.FogExp2(0x020104, 0.025);
@@ -18,7 +31,7 @@ camera.position.set(-6.5, 5.0, 6.5);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, QUALITY[activeQuality].dpr));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.2;
@@ -29,7 +42,7 @@ composer.addPass(new RenderPass(scene, camera));
 
 const bloomPass = new UnrealBloomPass(
     new THREE.Vector2(window.innerWidth, window.innerHeight),
-    0.8, 0.7, 0.8
+    0.52, 0.55, 0.72
 );
 composer.addPass(bloomPass);
 
@@ -37,10 +50,12 @@ const lensingShader = {
     uniforms: {
         "tDiffuse": { value: null },
         "blackHoleScreenPos": { value: new THREE.Vector2(0.5, 0.5) },
-        "lensingStrength": { value: 0.12 },
+        "lensingStrength": { value: 0.075 },
         "lensingRadius": { value: 0.3 },
         "aspectRatio": { value: window.innerWidth / window.innerHeight },
-        "chromaticAberration": { value: 0.005 }
+        "chromaticAberration": { value: 0.0012 },
+        "vignetteStrength": { value: 0.18 },
+        "exposureScale": { value: 1.0 }
     },
     vertexShader: `varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
     fragmentShader: `
@@ -50,6 +65,8 @@ const lensingShader = {
         uniform float lensingRadius;
         uniform float aspectRatio;
         uniform float chromaticAberration;
+        uniform float vignetteStrength;
+        uniform float exposureScale;
         varying vec2 vUv;
         
         void main() {
@@ -58,12 +75,11 @@ const lensingShader = {
             toCenter.x *= aspectRatio;
             float dist = length(toCenter);
             
-            float distortionAmount = lensingStrength / (dist * dist + 0.003);
-            distortionAmount = clamp(distortionAmount, 0.0, 0.7);
-            float falloff = smoothstep(lensingRadius, lensingRadius * 0.3, dist);
+            float distortionAmount = clamp(lensingStrength * 0.11 / max(dist, 0.025), 0.0, 0.16);
+            float falloff = 1.0 - smoothstep(lensingRadius * 0.28, lensingRadius, dist);
             distortionAmount *= falloff;
             
-            vec2 offset = normalize(toCenter) * distortionAmount;
+            vec2 offset = toCenter / max(dist, 0.0001) * distortionAmount;
             offset.x /= aspectRatio;
             
             vec2 distortedUvR = screenPos - offset * (1.0 + chromaticAberration);
@@ -74,7 +90,8 @@ const lensingShader = {
             float g = texture2D(tDiffuse, distortedUvG).g;
             float b = texture2D(tDiffuse, distortedUvB).b;
             
-            gl_FragColor = vec4(r, g, b, 1.0);
+            float vignette = smoothstep(0.3, 0.9, length((vUv - 0.5) * vec2(aspectRatio, 1.0)));
+            gl_FragColor = vec4(vec3(r, g, b) * exposureScale * (1.0 - vignetteStrength * vignette), 1.0);
         }`
 };
 const lensingPass = new ShaderPass(lensingShader);
@@ -98,16 +115,15 @@ const starSizes = new Float32Array(starCount);
 const starTwinkle = new Float32Array(starCount);
 const starFieldRadius = 2000;
 const starPalette = [
-    new THREE.Color(0x88aaff), new THREE.Color(0xffaaff), new THREE.Color(0xaaffff),
-    new THREE.Color(0xffddaa), new THREE.Color(0xffeecc), new THREE.Color(0xffffff),
-    new THREE.Color(0xff8888), new THREE.Color(0x88ff88), new THREE.Color(0xffff88),
-    new THREE.Color(0x88ffff)
+    new THREE.Color(0xcbdaf2), new THREE.Color(0xe5eaf7), new THREE.Color(0xffe6c5),
+    new THREE.Color(0xfff4dc), new THREE.Color(0xffffff), new THREE.Color(0xffd4ae)
 ];
 
 for (let i = 0; i < starCount; i++) {
     const i3 = i * 3;
-    const phi = Math.acos(-1 + (2 * i) / starCount);
-    const theta = Math.sqrt(starCount * Math.PI) * phi;
+    // Random ordering keeps every quality draw range spread across the whole sky.
+    const phi = Math.acos(2 * Math.random() - 1);
+    const theta = Math.random() * Math.PI * 2;
     const radius = Math.cbrt(Math.random()) * starFieldRadius + 100;
 
     starPositions[i3] = radius * Math.sin(phi) * Math.cos(theta);
@@ -124,11 +140,13 @@ starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3
 starGeometry.setAttribute('color', new THREE.BufferAttribute(starColors, 3));
 starGeometry.setAttribute('size', new THREE.BufferAttribute(starSizes, 1));
 starGeometry.setAttribute('twinkle', new THREE.BufferAttribute(starTwinkle, 1));
+starGeometry.setDrawRange(0, QUALITY[activeQuality].stars);
 
 const starMaterial = new THREE.ShaderMaterial({
     uniforms: {
         uTime: { value: 0 },
-        uPixelRatio: { value: renderer.getPixelRatio() }
+        uPixelRatio: { value: renderer.getPixelRatio() },
+        uOpacity: { value: 0.7 }
     },
     vertexShader: `
         uniform float uTime;
@@ -150,13 +168,14 @@ const starMaterial = new THREE.ShaderMaterial({
     fragmentShader: `
         varying vec3 vColor;
         varying float vTwinkle;
+        uniform float uOpacity;
         
         void main() {
             float dist = distance(gl_PointCoord, vec2(0.5));
             if (dist > 0.5) discard;
             
             float alpha = 1.0 - smoothstep(0.0, 0.5, dist);
-            alpha *= (0.2 + vTwinkle * 0.8);
+            alpha *= (0.65 + vTwinkle * 0.35) * uOpacity;
             
             gl_FragColor = vec4(vColor, alpha);
         }
@@ -180,8 +199,8 @@ const eventHorizonMat = new THREE.ShaderMaterial({
         varying vec3 vNormal;
         varying vec3 vPosition;
         void main() {
-            vNormal = normalize(normalMatrix * normal);
-            vPosition = position;
+            vNormal = normalize(mat3(modelMatrix) * normal);
+            vPosition = (modelMatrix * vec4(position, 1.0)).xyz;
             gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
         }
     `,
@@ -196,10 +215,10 @@ const eventHorizonMat = new THREE.ShaderMaterial({
             float fresnel = 1.0 - abs(dot(vNormal, viewDirection));
             fresnel = pow(fresnel, 2.5);
             
-            vec3 glowColor = vec3(1.0, 0.4, 0.1);
-            float pulse = sin(uTime * 2.5) * 0.15 + 0.85;
+            vec3 glowColor = vec3(0.8, 0.48, 0.22);
+            float pulse = sin(uTime * 1.2) * 0.05 + 0.95;
             
-            gl_FragColor = vec4(glowColor * fresnel * pulse, fresnel * 0.4);
+            gl_FragColor = vec4(glowColor * fresnel * pulse, fresnel * 0.16);
         }
     `,
     transparent: true,
@@ -216,6 +235,25 @@ const blackHoleMesh = new THREE.Mesh(blackHoleGeom, blackHoleMat);
 blackHoleMesh.renderOrder = 0;
 scene.add(blackHoleMesh);
 
+// A narrow, camera-facing photon-ring cue, visually separate from the black silhouette.
+const photonRing = new THREE.Mesh(new THREE.PlaneGeometry(4, 4), new THREE.ShaderMaterial({
+    uniforms: { uRingColor: { value: new THREE.Color('#f2bf83') } },
+    vertexShader: `varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+    fragmentShader: `uniform vec3 uRingColor; varying vec2 vUv;
+        void main() {
+            float r = length(vUv - 0.5) * 2.0;
+            float ringDistance = (r - 0.735) / 0.014;
+            float haloDistance = (r - 0.75) / 0.07;
+            float ring = exp(-ringDistance * ringDistance);
+            float halo = exp(-haloDistance * haloDistance);
+            float strength = ring * 0.7 + halo * 0.13;
+            gl_FragColor = vec4(uRingColor * strength, strength);
+        }`,
+    transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false
+}));
+photonRing.renderOrder = 3;
+scene.add(photonRing);
+
 const diskGeometry = new THREE.RingGeometry(DISK_INNER_RADIUS, DISK_OUTER_RADIUS, 256, 128);
 const diskMaterial = new THREE.ShaderMaterial({
     uniforms: {
@@ -227,16 +265,21 @@ const diskMaterial = new THREE.ShaderMaterial({
         uColorOuter: { value: new THREE.Color(0x4477ff) },
         uNoiseScale: { value: 2.5 },
         uFlowSpeed: { value: 0.22 },
-        uDensity: { value: 1.3 }
+        uDensity: { value: 1.05 },
+        uCameraPosition: { value: camera.position }
     },
     vertexShader: `
         varying vec2 vUv;
         varying float vRadius;
         varying float vAngle;
+        varying vec3 vWorldPos;
+        varying vec3 vFlowDir;
         void main() {
             vUv = uv;
             vRadius = length(position.xy);
             vAngle = atan(position.y, position.x);
+            vWorldPos = (modelMatrix * vec4(position, 1.0)).xyz;
+            vFlowDir = normalize((modelMatrix * vec4(-position.y, position.x, 0.0, 0.0)).xyz);
             gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
         }
     `,
@@ -250,10 +293,13 @@ const diskMaterial = new THREE.ShaderMaterial({
         uniform float uNoiseScale;
         uniform float uFlowSpeed;
         uniform float uDensity;
+        uniform vec3 uCameraPosition;
 
         varying vec2 vUv;
         varying float vRadius;
         varying float vAngle;
+        varying vec3 vWorldPos;
+        varying vec3 vFlowDir;
 
         vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
         vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
@@ -315,15 +361,17 @@ const diskMaterial = new THREE.ShaderMaterial({
             float noiseVal = (noiseVal1 * 0.45 + noiseVal2 * 0.35 + noiseVal3 * 0.2);
             noiseVal = (noiseVal + 1.0) * 0.5;
             
-            vec3 color = uColorOuter;
-            color = mix(color, uColorMid3, smoothstep(0.0, 0.25, normalizedRadius));
-            color = mix(color, uColorMid2, smoothstep(0.2, 0.55, normalizedRadius));
-            color = mix(color, uColorMid1, smoothstep(0.5, 0.75, normalizedRadius));
-            color = mix(color, uColorHot, smoothstep(0.7, 0.95, normalizedRadius));
+            vec3 color = uColorHot;
+            color = mix(color, uColorMid1, smoothstep(0.05, 0.3, normalizedRadius));
+            color = mix(color, uColorMid2, smoothstep(0.3, 0.58, normalizedRadius));
+            color = mix(color, uColorMid3, smoothstep(0.53, 0.8, normalizedRadius));
+            color = mix(color, uColorOuter, smoothstep(0.77, 1.0, normalizedRadius));
             
             color *= (0.5 + noiseVal * 1.0);
-            float brightness = pow(1.0 - normalizedRadius, 1.0) * 3.5 + 0.5;
+            float brightness = pow(1.0 - normalizedRadius, 1.5) * 3.2 + 0.15;
             brightness *= (0.3 + noiseVal * 2.2);
+            float approaching = dot(normalize(vFlowDir), normalize(uCameraPosition - vWorldPos));
+            brightness *= 1.0 + 0.3 * approaching;
             
             float pulse = sin(uTime * 1.8 + normalizedRadius * 12.0 + vAngle * 2.0) * 0.15 + 0.85;
             brightness *= pulse;
@@ -347,48 +395,126 @@ accretionDisk.rotation.x = DISK_TILT_ANGLE;
 accretionDisk.renderOrder = 1;
 scene.add(accretionDisk);
 
-setTimeout(() => { const info = document.getElementById('info'); if (info) info.style.opacity = '0'; }, 5000);
-
-let resizeTimeout;
-window.addEventListener('resize', () => {
-    clearTimeout(resizeTimeout);
-    resizeTimeout = setTimeout(() => {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        composer.setSize(window.innerWidth, window.innerHeight);
-        bloomPass.resolution.set(window.innerWidth, window.innerHeight);
-        lensingPass.uniforms.aspectRatio.value = window.innerWidth / window.innerHeight;
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
-    }, 150);
-});
-
 const clock = new THREE.Clock();
 const blackHoleScreenPosVec3 = new THREE.Vector3();
+let elapsedTime = 0;
+let autoResumeAt = 0;
+let resizeTimeout;
+
+function persist() {
+    try { localStorage.setItem('black-hole-cinematic-v2', JSON.stringify({ look: lookName, quality: qualityMode, motion: motionEnabled, camera: cameraEnabled, ...overrides })); } catch { /* Storage is optional. */ }
+}
+
+function applyLook() {
+    const look = LOOKS[lookName];
+    for (const [index, key] of ['uColorHot', 'uColorMid1', 'uColorMid2', 'uColorMid3', 'uColorOuter'].entries()) {
+        diskMaterial.uniforms[key].value.set(look.colors[index]);
+    }
+    photonRing.material.uniforms.uRingColor.value.set(look.colors[1]);
+    diskMaterial.uniforms.uDensity.value = look.density;
+    starMaterial.uniforms.uOpacity.value = look.stars;
+    bloomPass.strength = look.bloom * (overrides.bloom / 50);
+    lensingPass.uniforms.lensingStrength.value = look.lensing * (overrides.lensing / 50);
+    lensingPass.uniforms.chromaticAberration.value = look.aberration;
+    renderer.toneMappingExposure = look.exposure;
+    lensingPass.uniforms.exposureScale.value = 0.5 + overrides.exposure / 100;
+    bloomPass.enabled = QUALITY[activeQuality].bloom && overrides.bloom > 0;
+    document.getElementById('look-description').textContent = look.description;
+    document.querySelectorAll('[data-look]').forEach(button => {
+        const active = button.dataset.look === lookName;
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-pressed', String(active));
+    });
+    for (const key of Object.keys(overrides)) {
+        document.getElementById(key).value = overrides[key];
+        document.getElementById(`${key}-value`).textContent = `${Math.round(overrides[key])}%`;
+    }
+}
+
+function resizeRenderer() {
+    const ratio = Math.min(window.devicePixelRatio || 1, QUALITY[activeQuality].dpr);
+    renderer.setPixelRatio(ratio);
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    composer.setPixelRatio(ratio);
+    composer.setSize(window.innerWidth, window.innerHeight);
+    starMaterial.uniforms.uPixelRatio.value = ratio;
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    lensingPass.uniforms.aspectRatio.value = camera.aspect;
+}
+
+function applyQuality() {
+    activeQuality = qualityMode === 'auto' ? autoQuality() : qualityMode;
+    const budget = QUALITY[activeQuality];
+    starGeometry.setDrawRange(0, budget.stars);
+    ui.note.textContent = `${qualityMode === 'auto' ? 'Auto → ' : ''}${budget.label} · ${budget.stars.toLocaleString('es-MX')} estrellas`;
+    ui.quality.value = qualityMode;
+    resizeRenderer();
+    applyLook();
+}
+
+function applyCamera() {
+    ui.camera.checked = cameraEnabled;
+    controls.autoRotateSpeed = 0.16;
+    controls.autoRotate = cameraEnabled && performance.now() > autoResumeAt;
+}
+
+function setPanel(open) {
+    ui.panel.classList.toggle('open', open);
+    ui.toggle.setAttribute('aria-expanded', String(open));
+}
+
+ui.toggle.addEventListener('click', () => setPanel(!ui.panel.classList.contains('open')));
+document.getElementById('panel-close').addEventListener('click', () => setPanel(false));
+document.addEventListener('keydown', event => { if (event.key === 'Escape') setPanel(false); });
+document.querySelectorAll('[data-look]').forEach(button => button.addEventListener('click', () => {
+    lookName = button.dataset.look; applyLook(); persist();
+}));
+ui.quality.addEventListener('change', () => { qualityMode = ui.quality.value; applyQuality(); persist(); });
+for (const key of Object.keys(overrides)) {
+    document.getElementById(key).addEventListener('input', event => {
+        overrides[key] = Number(event.target.value); applyLook(); persist();
+    });
+}
+ui.camera.addEventListener('change', () => { cameraEnabled = ui.camera.checked; applyCamera(); persist(); });
+ui.motion.addEventListener('change', () => { motionEnabled = ui.motion.checked; persist(); });
+document.getElementById('reset').addEventListener('click', () => {
+    lookName = 'observatory'; qualityMode = 'auto'; motionEnabled = true; cameraEnabled = false;
+    for (const key of Object.keys(overrides)) overrides[key] = 50;
+    ui.motion.checked = true; applyQuality(); applyCamera(); persist();
+});
+controls.addEventListener('start', () => {
+    autoResumeAt = performance.now() + 12000;
+    controls.autoRotate = false;
+});
+window.addEventListener('resize', () => {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => { if (qualityMode === 'auto') applyQuality(); else resizeRenderer(); }, 150);
+});
+
+ui.motion.checked = motionEnabled;
+applyQuality();
+applyCamera();
 
 function animate() {
     requestAnimationFrame(animate);
-    const elapsedTime = clock.getElapsedTime();
-    const deltaTime = clock.getDelta();
-
+    const deltaTime = Math.min(clock.getDelta(), 0.05);
+    if (motionEnabled) elapsedTime += deltaTime;
     diskMaterial.uniforms.uTime.value = elapsedTime;
     starMaterial.uniforms.uTime.value = elapsedTime;
     eventHorizonMat.uniforms.uTime.value = elapsedTime;
-    eventHorizonMat.uniforms.uCameraPosition.value.copy(camera.position);
-
+    if (cameraEnabled && !controls.autoRotate && performance.now() > autoResumeAt) controls.autoRotate = true;
+    controls.update();
+    photonRing.quaternion.copy(camera.quaternion);
     blackHoleScreenPosVec3.copy(blackHoleMesh.position).project(camera);
     lensingPass.uniforms.blackHoleScreenPos.value.set(
-        (blackHoleScreenPosVec3.x + 1) / 2,
-        (blackHoleScreenPosVec3.y + 1) / 2
+        (blackHoleScreenPosVec3.x + 1) / 2, (blackHoleScreenPosVec3.y + 1) / 2
     );
-
-    controls.update();
-    
-    stars.rotation.y += deltaTime * 0.003;
-    stars.rotation.x += deltaTime * 0.001;
-
-    accretionDisk.rotation.z += deltaTime * 0.005;
-
+    if (motionEnabled) {
+        stars.rotation.y += deltaTime * 0.003;
+        stars.rotation.x += deltaTime * 0.001;
+        accretionDisk.rotation.z += deltaTime * 0.005;
+    }
     composer.render(deltaTime);
 }
 
