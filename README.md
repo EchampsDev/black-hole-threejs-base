@@ -4,7 +4,7 @@ Demo interactiva de un agujero negro en Three.js/WebGL. `main` conserva los arch
 
 ## Presets y controles
 
-- **Estética:** Observatorio (cálida y sobria), Horizonte (ámbar intenso), Espacio profundo (sombras frías), Noir (oscura y contenida) y Original lila (magenta, violeta y brillo rosado inspirado en la imagen de la base).
+- **Estética:** Observatorio (cálida y sobria), Horizonte (ámbar intenso), Espacio profundo (sombras frías), Noir (oscura y contenida) y Cósmico (magenta, violeta y brillo rosado inspirado en la imagen de la base).
 - **Calidad:** Auto, Baja, Media, Alta y Ultra. Ajusta la resolución interna, estrellas dibujadas y bloom sin cambiar la estética. Auto elige inicialmente según dispositivo; Ultra se selecciona manualmente.
 - **Ajustes finos:** curvatura de luz, resplandor y exposición; cámara orbital lenta y pausa de animación.
 - **Cámara Interstellar:** botón de recorrido automático con cuenta regresiva de cinco segundos. Durante 29 segundos enlaza planos abiertos, una órbita y acercamientos al horizonte luminoso, y termina en un plano de regreso. Al empezar el movimiento desaparecen el logo, los controles, las etiquetas y las instrucciones para dejar la escena limpia. Durante la cuenta se puede cancelar con el botón; durante el viaje, tocando la escena o con Escape. Al terminar se recupera el control manual. Es un movimiento original inspirado en un lenguaje cinematográfico, sin imágenes ni audio de la película.

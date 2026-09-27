@@ -4,7 +4,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
-import { LOOKS, QUALITY, autoQuality } from './presets.js?v=original-lilac-2';
+import { LOOKS, QUALITY, autoQuality } from './presets.js?v=cosmico-1';
 
 const BLACK_HOLE_RADIUS = 1.3;
 const DISK_INNER_RADIUS = BLACK_HOLE_RADIUS + 0.2;
