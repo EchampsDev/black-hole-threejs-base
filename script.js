@@ -4,7 +4,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
-import { LOOKS, QUALITY, autoQuality } from './presets.js';
+import { LOOKS, QUALITY, autoQuality } from './presets.js?v=original-lilac-2';
 
 const BLACK_HOLE_RADIUS = 1.3;
 const DISK_INNER_RADIUS = BLACK_HOLE_RADIUS + 0.2;
@@ -542,6 +542,7 @@ document.getElementById('tour-start').addEventListener('click', startTour);
 document.getElementById('tour-cancel').addEventListener('click', stopTour);
 renderer.domElement.addEventListener('pointerdown', stopTour);
 document.querySelectorAll('[data-look]').forEach(button => button.addEventListener('click', () => {
+    if (!Object.hasOwn(LOOKS, button.dataset.look)) return;
     lookName = button.dataset.look; applyLook(); persist();
 }));
 ui.quality.addEventListener('change', () => { qualityMode = ui.quality.value; applyQuality(); persist(); });
