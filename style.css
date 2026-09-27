@@ -1,0 +1,30 @@
+body {
+    margin: 0;
+    overflow: hidden;
+    background: radial-gradient(ellipse at center, #0a0a1a 0%, #000002 70%);
+    color: #e0e0ff;
+    font-family: 'Inter', sans-serif;
+}
+canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+#info {
+    position: absolute;
+    top: 20px;
+    width: 100%;
+    text-align: center;
+    color: rgba(220, 220, 255, 0.9);
+    font-size: 18px;
+    letter-spacing: 0.5px;
+    pointer-events: none;
+    z-index: 100;
+    text-shadow: 0 1px 5px rgba(0, 0, 0, 0.7);
+    transition: opacity 2s ease-in-out 1s;
+}
+
+@media (max-width: 640px) {
+    #info { font-size: 16px; top: 15px; }
+    #info span { font-size: 12px; }
+}
