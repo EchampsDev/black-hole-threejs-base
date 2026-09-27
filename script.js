@@ -408,13 +408,12 @@ let tourState = 'idle';
 let tourStartedAt = 0;
 let tourRoute = [];
 let lastCountdown = 0;
-let lastScene = -1;
 const tourShots = [
-    { time: 4, position: [-11, 5, 11], title: 'PLANO ABIERTO' },
-    { time: 10, position: [-7, 3.3, 6], title: 'APROXIMACIÓN' },
-    { time: 17, position: [-2.2, 1.5, 3.2], title: 'HORIZONTE' },
-    { time: 23, position: [2.4, 1.1, 2.2], title: 'PASO CERCANO' },
-    { time: TOUR_DURATION, position: [6, 3, 7], title: 'REGRESO' }
+    { time: 4, position: [-11, 5, 11] },
+    { time: 10, position: [-7, 3.3, 6] },
+    { time: 17, position: [-2.2, 1.5, 3.2] },
+    { time: 23, position: [2.4, 1.1, 2.2] },
+    { time: TOUR_DURATION, position: [6, 3, 7] }
 ];
 
 function persist() {
@@ -478,8 +477,8 @@ function applyCamera() {
 function stopTour() {
     if (tourState === 'idle') return;
     tourState = 'idle';
+    document.body.classList.remove('tour-active');
     ui.tour.hidden = true;
-    ui.tour.classList.remove('running');
     controls.enabled = true;
     controls.target.set(0, 0, 0);
     controls.update();
@@ -489,16 +488,15 @@ function stopTour() {
 
 function startTour() {
     if (tourState !== 'idle') stopTour();
-    tourRoute = [{ time: 0, position: camera.position.clone(), title: 'DESPEGUE' },
+    tourRoute = [{ time: 0, position: camera.position.clone() },
         ...tourShots.map(shot => ({ ...shot, position: new THREE.Vector3(...shot.position) }))];
     tourState = 'countdown';
+    document.body.classList.remove('tour-active');
     tourStartedAt = performance.now();
     lastCountdown = 5;
-    lastScene = -1;
     controls.enabled = false;
     controls.autoRotate = false;
     ui.tour.hidden = false;
-    ui.tour.classList.remove('running');
     ui.tourPhase.textContent = 'CÁMARA INTERSTELLAR';
     ui.tourCount.textContent = '5';
     ui.tourDescription.textContent = 'El viaje comienza en breve';
@@ -516,7 +514,8 @@ function updateTour(now) {
             return;
         }
         tourState = 'running';
-        ui.tour.classList.add('running');
+        ui.tour.hidden = true;
+        document.body.classList.add('tour-active');
     }
     const progress = Math.min(TOUR_DURATION, elapsed - TOUR_COUNTDOWN);
     if (progress >= TOUR_DURATION) { stopTour(); return; }
@@ -527,11 +526,6 @@ function updateTour(now) {
     const eased = fraction * fraction * (3 - 2 * fraction);
     camera.position.lerpVectors(from.position, to.position, eased);
     camera.lookAt(0, 0, 0);
-    if (sceneIndex !== lastScene) {
-        ui.tourPhase.textContent = 'CÁMARA INTERSTELLAR';
-        ui.tourDescription.textContent = to.title;
-        lastScene = sceneIndex;
-    }
 }
 
 function setPanel(open) {

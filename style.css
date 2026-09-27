@@ -43,11 +43,10 @@ input[type=checkbox] { width: 17px; height: 17px; accent-color: #d6a36d; }
 .tour-caption small { color: #f6bb80; font-size: 11px; letter-spacing: .35em; }
 .tour-caption strong { font-size: clamp(72px, 17vw, 144px); font-weight: 300; line-height: 1; font-variant-numeric: tabular-nums; }
 .tour-caption span { color: #e9dccb; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; }
-.tour-overlay.running { justify-content: flex-end; padding-bottom: max(80px, env(safe-area-inset-bottom)); }
-.tour-overlay.running .tour-caption strong { display: none; }
+.tour-active .brand, .tour-active .panel-toggle, .tour-active .instruction, .tour-active .tour-overlay { display: none; }
 .tour-cancel { pointer-events: auto; min-height: 43px; padding: 10px 19px; border: 1px solid #ffffff66; border-radius: 999px; background: #080a0dc9; color: #fff4e9; font-size: 12px; backdrop-filter: blur(12px); }
 .reset-button { width: 100%; margin-top: 19px; padding: 11px; border: 1px solid #ffffff34; border-radius: 10px; background: #ffffff0b; color: #f0e6da; font-size: 11px; }
 .credit { margin: 17px 0 0; color: #8f8a84; font-size: 10px; line-height: 1.5; }.credit a { color: #cfa775; }
 .fallback { position: fixed; z-index: 4; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 9px; padding: 25px; background: #030407; text-align: center; }.fallback[hidden] { display: none; }.fallback span { color: #a9a29a; font-size: 13px; }
-@media (max-width: 640px) { .brand { top: 23px; left: 18px; }.brand strong { font-size: 12px; }.brand small { font-size: 8px; }.brand-mark { width: 25px; height: 25px; }.panel-toggle { top: 17px; right: 16px; }.panel { top: auto; bottom: 0; right: 0; width: 100%; max-height: min(74dvh, 720px); border-radius: 22px 22px 0 0; transform: translateY(18px); padding-bottom: max(22px, env(safe-area-inset-bottom)); }.instruction { left: 18px; bottom: max(16px, env(safe-area-inset-bottom)); font-size: 10px; }.tour-overlay.running { padding-bottom: max(105px, env(safe-area-inset-bottom)); } }
+@media (max-width: 640px) { .brand { top: 23px; left: 18px; }.brand strong { font-size: 12px; }.brand small { font-size: 8px; }.brand-mark { width: 25px; height: 25px; }.panel-toggle { top: 17px; right: 16px; }.panel { top: auto; bottom: 0; right: 0; width: 100%; max-height: min(74dvh, 720px); border-radius: 22px 22px 0 0; transform: translateY(18px); padding-bottom: max(22px, env(safe-area-inset-bottom)); }.instruction { left: 18px; bottom: max(16px, env(safe-area-inset-bottom)); font-size: 10px; } }
 @media (prefers-reduced-motion: reduce) { .panel { transition: none; } }
